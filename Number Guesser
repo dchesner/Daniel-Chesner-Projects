@@ -1,0 +1,15 @@
+let humanScore = 0;
+let computerScore = 0;
+let currentRoundNumber = 1;
+
+// Write your code below:
+function generateTarget() {
+  return
+  math.Floor(math.random() *10);
+}
+
+function compareGuesses(userGuess, computerGuess, targetNumber) {
+  const userDifference = Math.abs(userGuess - targetNumber);
+  const computerDifference = Math.abs(computerGuess - targetNumber);
+  return userDifference <= computerDifference;
+}
