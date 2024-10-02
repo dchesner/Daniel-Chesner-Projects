@@ -1,0 +1,78 @@
+// Import necessary modules
+const express = require('express');
+const app = express();
+const PORT = 3000;
+
+// Use built-in express middleware to parse JSON
+app.use(express.json());
+
+// In-memory task storage (instead of a database for simplicity)
+let tasks = [
+  { id: 1, title: "Learn Node.js", completed: false },
+  { id: 2, title: "Build a Task Manager API", completed: true }
+];
+
+// Home route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Task Manager API!');
+});
+
+// Get all tasks
+app.get('/tasks', (req, res) => {
+  res.json(tasks);
+});
+
+// Get a single task by ID
+app.get('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const task = tasks.find(t => t.id === taskId);
+
+  if (task) {
+    res.json(task);
+  } else {
+    res.status(404).send('Task not found');
+  }
+});
+
+// Create a new task
+app.post('/tasks', (req, res) => {
+  const newTask = {
+    id: tasks.length + 1,
+    title: req.body.title,
+    completed: false
+  };
+  tasks.push(newTask);
+  res.status(201).json(newTask);
+});
+
+// Update a task by ID
+app.put('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const task = tasks.find(t => t.id === taskId);
+
+  if (task) {
+    task.title = req.body.title || task.title;
+    task.completed = req.body.completed !== undefined ? req.body.completed : task.completed;
+    res.json(task);
+  } else {
+    res.status(404).send('Task not found');
+  }
+});
+
+// Delete a task by ID
+app.delete('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+  if (taskIndex > -1) {
+    tasks.splice(taskIndex, 1);
+    res.status(204).send();
+  } else {
+    res.status(404).send('Task not found');
+  }
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
