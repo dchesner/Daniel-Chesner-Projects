@@ -1,0 +1,105 @@
+import React, { useState } from "react";
+
+function App() {
+  // State to store colors
+  const [colors, setColors] = useState(generateColors(5));
+
+  // Function to generate an array of random colors
+  function generateColors(num) {
+    let colorArray = [];
+    for (let i = 0; i < num; i++) {
+      const color = randomColor();
+      colorArray.push({
+        hex: color,
+        rgb: hexToRgb(color),
+      });
+    }
+    return colorArray;
+  }
+
+  // Function to generate a random HEX color
+  function randomColor() {
+    const letters = "0123456789ABCDEF";
+    let color = "#";
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  // Convert HEX color to RGB
+  function hexToRgb(hex) {
+    const bigint = parseInt(hex.slice(1), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // Handle generating new colors
+  function handleGenerate() {
+    setColors(generateColors(5));
+  }
+
+  // Handle copying color to clipboard
+  function handleCopy(color) {
+    navigator.clipboard.writeText(color);
+    alert(`${color} copied to clipboard!`);
+  }
+
+  return (
+    <div style={styles.app}>
+      <h1>Color Picker App</h1>
+      <div style={styles.grid}>
+        {colors.map((color, index) => (
+          <div
+            key={index}
+            style={{ ...styles.colorBox, backgroundColor: color.hex }}
+            onClick={() => handleCopy(color.hex)}
+          >
+            <p>{color.hex}</p>
+            <p>{color.rgb}</p>
+          </div>
+        ))}
+      </div>
+      <button style={styles.button} onClick={handleGenerate}>
+        Generate New Colors
+      </button>
+    </div>
+  );
+}
+
+// Inline styles for the app
+const styles = {
+  app: {
+    textAlign: "center",
+    fontFamily: "Arial, sans-serif",
+    padding: "20px",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(5, 1fr)",
+    gap: "20px",
+    margin: "20px 0",
+  },
+  colorBox: {
+    padding: "20px",
+    borderRadius: "10px",
+    color: "white",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  button: {
+    padding: "10px 20px",
+    backgroundColor: "#28a745",
+    color: "white",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+  },
+};
+
+export default App;
