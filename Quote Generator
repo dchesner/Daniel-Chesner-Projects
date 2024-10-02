@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalized Quotes Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #5d8bce;
+        }
+        #quote-container {
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            text-align: center;
+        }
+        #quote {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            min-height: 50px;
+        }
+        #theme-select, #new-quote {
+            width: calc(50% - 10px);
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #add-quote {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        #generate-quote {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .quote-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        .quote-item {
+            margin: 5px 0;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Personalized Quotes Generator</h1>
+    <div id="quote-container">
+        <div id="quote">Your quote will appear here.</div>
+        <select id="theme-select">
+            <option value="Inspiration">Inspiration</option>
+            <option value="Love">Love</option>
+            <option value="Life">Life</option>
+            <option value="Happiness">Happiness</option>
+            <option value="Motivation">Motivation</option>
+        </select>
+        <input type="text" id="new-quote" placeholder="Add a new quote...">
+        <button id="add-quote">Add Quote</button>
+        <button id="generate-quote">Generate Quote</button>
+        <h3>Your Quotes:</h3>
+        <ul id="quote-list" class="quote-list"></ul>
+    </div>
+
+    <script>
+        const quoteContainer = document.getElementById('quote');
+        const themeSelect = document.getElementById('theme-select');
+        const newQuoteInput = document.getElementById('new-quote');
+        const addQuoteButton = document.getElementById('add-quote');
+        const generateQuoteButton = document.getElementById('generate-quote');
+        const quoteList = document.getElementById('quote-list');
+
+        let quotes = {
+            Inspiration: [
+                "The best way to predict the future is to create it.",
+                "You are never too old to set another goal or to dream a new dream."
+            ],
+            Love: [
+                "Love all, trust a few, do wrong to none.",
+                "Where there is love there is life."
+            ],
+            Life: [
+                "Life is what happens when you’re busy making other plans.",
+                "Get busy living or get busy dying."
+            ],
+            Happiness: [
+                "Happiness is not something ready-made. It comes from your own actions.",
+                "The purpose of our lives is to be happy."
+            ],
+            Motivation: [
+                "Act as if what you do makes a difference. It does.",
+                "Success is not the key to happiness. Happiness is the key to success."
+            ]
+        };
+
+        // Generate a random quote based on the selected theme
+        generateQuoteButton.addEventListener('click', () => {
+            const selectedTheme = themeSelect.value;
+            const themeQuotes = quotes[selectedTheme];
+            const randomQuote = themeQuotes[Math.floor(Math.random() * themeQuotes.length)];
+            quoteContainer.innerText = randomQuote;
+        });
+
+        // Add a new quote to the selected theme
+        addQuoteButton.addEventListener('click', () => {
+            const newQuote = newQuoteInput.value.trim();
+            const selectedTheme = themeSelect.value;
+
+            if (newQuote === '') {
+                alert('Please enter a quote.');
+                return;
+            }
+
+            // Add the new quote to the quotes object
+            if (!quotes[selectedTheme]) {
+                quotes[selectedTheme] = [];
+            }
+            quotes[selectedTheme].push(newQuote);
+            newQuoteInput.value = '';
+
+            // Update the quote list
+            updateQuoteList();
+        });
+
+        // Function to update the displayed quotes list
+        function updateQuoteList() {
+            quoteList.innerHTML = '';
+            Object.keys(quotes).forEach(theme => {
+                quotes[theme].forEach(quote => {
+                    const li = document.createElement('li');
+                    li.classList.add('quote-item');
+                    li.innerText = `${theme}: "${quote}"`;
+                    quoteList.appendChild(li);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
