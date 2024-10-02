@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Quiz App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .quiz-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 400px;
+    }
+    .quiz-header {
+      margin-bottom: 20px;
+    }
+    .question {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .options {
+      list-style: none;
+      padding: 0;
+    }
+    .options li {
+      margin-bottom: 10px;
+    }
+    .options input {
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #f1f1f1;
+    }
+    .correct {
+      color: green;
+    }
+    .wrong {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="quiz-container">
+    <div class="quiz-header">
+      <h1>JavaScript Quiz</h1>
+    </div>
+    <div id="quiz"></div>
+    <button id="submit">Submit Quiz</button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    // Array of questions
+    const quizData = [
+      {
+        question: "What is the capital of France?",
+        a: "Berlin",
+        b: "Madrid",
+        c: "Paris",
+        d: "Rome",
+        correct: "c"
+      },
+      {
+        question: "Which language is used for web development?",
+        a: "Python",
+        b: "JavaScript",
+        c: "C++",
+        d: "Java",
+        correct: "b"
+      },
+      {
+        question: "Who is the President of the USA in 2024?",
+        a: "Joe Biden",
+        b: "Donald Trump",
+        c: "Barack Obama",
+        d: "Kamala Harris",
+        correct: "a"
+      },
+      {
+        question: "What does HTML stand for?",
+        a: "Hypertext Markup Language",
+        b: "Hyper Transfer Markup Language",
+        c: "Hyper Transfer Machine Language",
+        d: "Hyper Trainer Markup Language",
+        correct: "a"
+      },
+      {
+        question: "What year was JavaScript created?",
+        a: "1996",
+        b: "1995",
+        c: "1994",
+        d: "1997",
+        correct: "b"
+      }
+    ];
+
+    // Get elements from the DOM
+    const quizContainer = document.getElementById("quiz");
+    const submitButton = document.getElementById("submit");
+    const resultContainer = document.getElementById("result");
+
+    let currentQuiz = 0;
+    let score = 0;
+
+    // Load the quiz
+    function loadQuiz() {
+      const currentQuizData = quizData[currentQuiz];
+      const quizHTML = `
+        <div class="question">${currentQuizData.question}</div>
+        <ul class="options">
+          <li><input type="radio" name="answer" value="a"> ${currentQuizData.a}</li>
+          <li><input type="radio" name="answer" value="b"> ${currentQuizData.b}</li>
+          <li><input type="radio" name="answer" value="c"> ${currentQuizData.c}</li>
+          <li><input type="radio" name="answer" value="d"> ${currentQuizData.d}</li>
+        </ul>
+      `;
+      quizContainer.innerHTML = quizHTML;
+    }
+
+    // Get selected answer
+    function getSelectedAnswer() {
+      const answers = document.querySelectorAll("input[name='answer']");
+      let selectedAnswer = null;
+      answers.forEach(answer => {
+        if (answer.checked) {
+          selectedAnswer = answer.value;
+        }
+      });
+      return selectedAnswer;
+    }
+
+    // Show results
+    function showResult() {
+      resultContainer.innerHTML = `<h3>Your Score: ${score}/${quizData.length}</h3>`;
+      quizData.forEach((quizItem, index) => {
+        const correctAnswer = quizItem.correct;
+        const questionResult = `
+          <p>
+            Q${index + 1}: ${quizItem.question} <br>
+            Correct Answer: <span class="correct">${quizItem[correctAnswer]}</span>
+          </p>
+        `;
+        resultContainer.innerHTML += questionResult;
+      });
+    }
+
+    // Check answers and move to the next quiz
+    function checkAnswer() {
+      const answer = getSelectedAnswer();
+      if (answer) {
+        if (answer === quizData[currentQuiz].correct) {
+          score++;
+        }
+        currentQuiz++;
+        if (currentQuiz < quizData.length) {
+          loadQuiz();
+        } else {
+          showResult();
+          submitButton.disabled = true;
+        }
+      } else {
+        alert("Please select an answer before proceeding.");
+      }
+    }
+
+    // Load the first quiz when page loads
+    loadQuiz();
+
+    // Handle the submit button click
+    submitButton.addEventListener("click", checkAnswer);
+  </script>
+
+</body>
+</html>
