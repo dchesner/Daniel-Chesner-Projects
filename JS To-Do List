@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List with Categories</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .todo-app {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+
+    .todo-list {
+      margin-top: 20px;
+    }
+
+    .todo-item {
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .todo-item.completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .filter-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .filter-buttons button {
+      width: 48%;
+    }
+
+    .category-tag {
+      background-color: #007bff;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="todo-app">
+    <h1>To-Do List with Categories</h1>
+
+    <!-- Task Input -->
+    <input type="text" id="task-input" placeholder="Enter a task" />
+
+    <!-- Category Selection -->
+    <select id="category-select">
+      <option value="Work">Work</option>
+      <option value="Personal">Personal</option>
+      <option value="Shopping">Shopping</option>
+    </select>
+
+    <!-- Add Task Button -->
+    <button id="add-task-btn">Add Task</button>
+
+    <!-- Task List -->
+    <div class="todo-list" id="todo-list"></div>
+
+    <!-- Filter Buttons -->
+    <div class="filter-buttons">
+      <button id="filter-all">Show All</button>
+      <button id="filter-work">Show Work</button>
+      <button id="filter-personal">Show Personal</button>
+      <button id="filter-shopping">Show Shopping</button>
+    </div>
+  </div>
+
+  <script>
+    // Task array to store tasks
+    let tasks = [];
+
+    // DOM elements
+    const taskInput = document.getElementById('task-input');
+    const categorySelect = document.getElementById('category-select');
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const todoList = document.getElementById('todo-list');
+    const filterAllBtn = document.getElementById('filter-all');
+    const filterWorkBtn = document.getElementById('filter-work');
+    const filterPersonalBtn = document.getElementById('filter-personal');
+    const filterShoppingBtn = document.getElementById('filter-shopping');
+
+    // Add task
+    addTaskBtn.addEventListener('click', () => {
+      const taskText = taskInput.value.trim();
+      const category = categorySelect.value;
+
+      if (taskText === '') return;
+
+      const task = {
+        text: taskText,
+        category,
+        completed: false
+      };
+
+      tasks.push(task);
+      taskInput.value = '';
+      renderTasks();
+    });
+
+    // Render tasks
+    function renderTasks(filterCategory = null) {
+      todoList.innerHTML = '';
+
+      const filteredTasks = filterCategory
+        ? tasks.filter(task => task.category === filterCategory)
+        : tasks;
+
+      filteredTasks.forEach((task, index) => {
+        const taskItem = document.createElement('div');
+        taskItem.className = `todo-item ${task.completed ? 'completed' : ''}`;
+        taskItem.innerHTML = `
+          <span>
+            ${task.text}
+            <span class="category-tag">${task.category}</span>
+          </span>
+          <button onclick="toggleComplete(${index})">Complete</button>
+        `;
+        todoList.appendChild(taskItem);
+      });
+    }
+
+    // Toggle task completion
+    function toggleComplete(index) {
+      tasks[index].completed = !tasks[index].completed;
+      renderTasks();
+    }
+
+    // Filter buttons
+    filterAllBtn.addEventListener('click', () => renderTasks());
+    filterWorkBtn.addEventListener('click', () => renderTasks('Work'));
+    filterPersonalBtn.addEventListener('click', () => renderTasks('Personal'));
+    filterShoppingBtn.addEventListener('click', () => renderTasks('Shopping'));
+
+    // Initial rendering
+    renderTasks();
+  </script>
+</body>
+</html>
