@@ -1,0 +1,220 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  FlatList,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Switch,
+} from 'react-native';
+
+const App = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState({ id: '', description: '', amount: '', type: 'Income', category: 'Salary' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+
+  const addTransactionHandler = () => {
+    if (currentTransaction.description.trim().length === 0 || currentTransaction.amount.trim().length === 0) return;
+
+    setTransactions((prevTransactions) => [
+      ...prevTransactions,
+      {
+        id: Math.random().toString(),
+        description: currentTransaction.description,
+        amount: parseFloat(currentTransaction.amount),
+        type: currentTransaction.type,
+        category: currentTransaction.category,
+      },
+    ]);
+    resetCurrentTransaction();
+    setModalVisible(false);
+  };
+
+  const deleteTransactionHandler = (transactionId) => {
+    setTransactions((prevTransactions) => prevTransactions.filter((transaction) => transaction.id !== transactionId));
+  };
+
+  const resetCurrentTransaction = () => {
+    setCurrentTransaction({ id: '', description: '', amount: '', type: 'Income', category: 'Salary' });
+  };
+
+  const calculateBalance = () => {
+    return transactions.reduce((acc, transaction) => {
+      return transaction.type === 'Income' ? acc + transaction.amount : acc - transaction.amount;
+    }, 0);
+  };
+
+  const filteredTransactions = transactions.filter(transaction => transaction.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  return (
+    <View style={[styles.container, darkMode && styles.darkContainer]}>
+      <Text style={[styles.header, darkMode && styles.darkText]}>Personal Finance App</Text>
+      <Text style={[styles.balance, darkMode && styles.darkText]}>Current Balance: ${calculateBalance().toFixed(2)}</Text>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search transactions..."
+          style={[styles.input, darkMode && styles.darkInput]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      <FlatList
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={[styles.transactionItem, darkMode && styles.darkTransactionItem]}>
+            <View style={styles.transactionDetails}>
+              <Text style={[styles.transactionText, darkMode && styles.darkText]}>{item.description} - ${item.amount.toFixed(2)}</Text>
+              <Text style={[styles.categoryText, darkMode && styles.darkText]}>{item.category} ({item.type})</Text>
+            </View>
+            <Button title="Delete" onPress={() => deleteTransactionHandler(item.id)} color="#ff4757" />
+          </View>
+        )}
+      />
+
+      <Button title="Add Transaction" onPress={() => setModalVisible(true)} color="#2ed573" />
+
+      <View style={styles.switchContainer}>
+        <Text style={[styles.switchText, darkMode && styles.darkText]}>Dark Mode</Text>
+        <Switch value={darkMode} onValueChange={setDarkMode} />
+      </View>
+
+      <Modal visible={modalVisible} animationType="slide">
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContent}>
+            <TextInput
+              placeholder="Description"
+              style={[styles.input, darkMode && styles.darkInput]}
+              value={currentTransaction.description}
+              onChangeText={(text) => setCurrentTransaction({ ...currentTransaction, description: text })}
+            />
+            <TextInput
+              placeholder="Amount"
+              style={[styles.input, darkMode && styles.darkInput]}
+              value={currentTransaction.amount}
+              keyboardType="numeric"
+              onChangeText={(text) => setCurrentTransaction({ ...currentTransaction, amount: text })}
+            />
+            <View style={styles.radioContainer}>
+              <Text>Type:</Text>
+              <TouchableOpacity onPress={() => setCurrentTransaction({ ...currentTransaction, type: 'Income' })}>
+                <Text style={currentTransaction.type === 'Income' ? styles.selected : styles.unselected}>Income</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setCurrentTransaction({ ...currentTransaction, type: 'Expense' })}>
+                <Text style={currentTransaction.type === 'Expense' ? styles.selected : styles.unselected}>Expense</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              placeholder="Category"
+              style={[styles.input, darkMode && styles.darkInput]}
+              value={currentTransaction.category}
+              onChangeText={(text) => setCurrentTransaction({ ...currentTransaction, category: text })}
+            />
+            <Button title="Save Transaction" onPress={addTransactionHandler} />
+            <Button title="Cancel" onPress={() => setModalVisible(false)} color="#ff4757" />
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  darkContainer: {
+    backgroundColor: '#333',
+  },
+  header: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  balance: {
+    fontSize: 20,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  darkText: {
+    color: '#fff',
+  },
+  searchContainer: {
+    marginBottom: 15,
+  },
+  input: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
+  },
+  darkInput: {
+    borderColor: '#555',
+    backgroundColor: '#444',
+    color: '#fff',
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    marginVertical: 5,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    elevation: 3,
+  },
+  darkTransactionItem: {
+    backgroundColor: '#444',
+  },
+  transactionDetails: {
+    flex: 1,
+  },
+  transactionText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#777',
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  switchText: {
+    fontSize: 18,
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 10,
+  },
+  selected: {
+    fontWeight: 'bold',
+    color: 'green',
+  },
+  unselected: {
+    color: 'grey',
+  },
+});
+
+export default App;
