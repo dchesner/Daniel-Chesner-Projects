@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    #taskInput { padding: 10px; width: 80%; }
+    button { padding: 10px; margin: 5px 0; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #218838; }
+    ul { list-style-type: none; padding: 0; }
+    li { padding: 10px; margin-bottom: 5px; background-color: #f8f9fa; display: flex; justify-content: space-between; }
+    li.completed { text-decoration: line-through; color: gray; }
+    .delete { background-color: #dc3545; color: white; border: none; cursor: pointer; }
+    .delete:hover { background-color: #c82333; }
+  </style>
+</head>
+<body>
+
+  <h1>To-Do List</h1>
+  <input type="text" id="taskInput" placeholder="Add a new task...">
+  <button onclick="addTask()">Add Task</button>
+  
+  <ul id="taskList"></ul>
+
+  <script>
+    function addTask() {
+      const taskInput = document.getElementById('taskInput');
+      const taskValue = taskInput.value.trim();
+      if (taskValue) {
+        const li = document.createElement('li');
+        li.innerHTML = `${taskValue} <button class="delete" onclick="removeTask(this)">Delete</button>`;
+        li.addEventListener('click', function() { li.classList.toggle('completed'); });
+        document.getElementById('taskList').appendChild(li);
+        taskInput.value = '';
+      }
+    }
+
+    function removeTask(button) {
+      const li = button.parentElement;
+      li.remove();
+    }
+  </script>
+
+</body>
+</html>
