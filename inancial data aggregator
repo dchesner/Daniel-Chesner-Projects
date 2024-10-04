@@ -1,0 +1,106 @@
+# Import necessary libraries
+import requests
+import sqlite3
+from flask import Flask, render_template, jsonify
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# Set up the Flask app
+app = Flask(__name__)
+
+# Set up the SQL database
+db_conn = sqlite3.connect('market_data.db', check_same_thread=False)
+cursor = db_conn.cursor()
+
+# Create a table to store historical data
+cursor.execute('''CREATE TABLE IF NOT EXISTS market_data
+                  (symbol TEXT, price REAL, date TEXT)''')
+
+# Function to fetch real-time market data using Alpha Vantage API
+def fetch_market_data(symbol):
+    api_key = 'YOUR_API_KEY'  # Replace with your Alpha Vantage API Key
+    base_url = 'https://www.alphavantage.co/query?'
+    params = {
+        'function': 'TIME_SERIES_INTRADAY',
+        'symbol': symbol,
+        'interval': '5min',
+        'apikey': api_key
+    }
+    response = requests.get(base_url, params=params)
+    data = response.json()
+
+    try:
+        time_series = data['Time Series (5min)']
+        latest_time = list(time_series.keys())[0]
+        latest_data = time_series[latest_time]
+        return {
+            'symbol': symbol,
+            'price': float(latest_data['4. close']),
+            'date': latest_time
+        }
+    except KeyError:
+        return None
+
+# Function to store fetched data in the SQL database
+def store_data_in_db(data):
+    cursor.execute("INSERT INTO market_data (symbol, price, date) VALUES (?, ?, ?)",
+                   (data['symbol'], data['price'], data['date']))
+    db_conn.commit()
+
+# Function to retrieve historical data from the SQL database
+def get_historical_data(symbol):
+    cursor.execute("SELECT * FROM market_data WHERE symbol=?", (symbol,))
+    return cursor.fetchall()
+
+# Function to plot the data and return it as a base64 image
+def plot_data(data):
+    dates = [entry[2] for entry in data]
+    prices = [entry[1] for entry in data]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(dates, prices, marker='o', linestyle='-', color='b')
+    plt.title(f"Price Trend for {data[0][0]}")
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.xticks(rotation=45)
+
+    # Save the plot to a BytesIO object and convert it to base64
+    img = io.BytesIO()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    base64_img = base64.b64encode(img.getvalue()).decode('utf8')
+    plt.close()
+
+    return base64_img
+
+# Route to fetch real-time data and store it
+@app.route('/fetch/<symbol>', methods=['GET'])
+def fetch_and_store(symbol):
+    data = fetch_market_data(symbol)
+    if data:
+        store_data_in_db(data)
+        return jsonify({'message': 'Data fetched and stored successfully', 'data': data})
+    else:
+        return jsonify({'message': 'Error fetching data'}), 400
+
+# Route to visualize the historical data for a given stock symbol
+@app.route('/visualize/<symbol>', methods=['GET'])
+def visualize(symbol):
+    historical_data = get_historical_data(symbol)
+    if historical_data:
+        img = plot_data(historical_data)
+        return f'<img src="data:image/png;base64,{img}" />'
+    else:
+        return jsonify({'message': 'No data found'}), 404
+
+# Main route to show dashboard
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
