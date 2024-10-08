@@ -1,0 +1,15 @@
+-- Create a table to store tasks
+CREATE TABLE tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_name VARCHAR(255) NOT NULL,
+    due_date DATE NOT NULL,
+    assigned_user VARCHAR(255) NOT NULL,
+    status ENUM('Incomplete', 'Completed') DEFAULT 'Incomplete'
+);
+
+-- Insert sample tasks
+INSERT INTO tasks (task_name, due_date, assigned_user, status) 
+VALUES 
+('Complete project report', '2024-10-02', 'user1@example.com', 'Incomplete'),
+('Submit timesheet', '2024-10-01', 'user2@example.com', 'Completed'),
+('Prepare presentation', '2024-09-30', 'user3@example.com', 'Incomplete');
