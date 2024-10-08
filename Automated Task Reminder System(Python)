@@ -1,0 +1,61 @@
+import mysql.connector
+from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Database connection
+db = mysql.connector.connect(
+    host="localhost",   # or your database host
+    user="your_username",
+    password="your_password",
+    database="task_manager"  # The name of your database
+)
+
+cursor = db.cursor()
+
+# Query to find overdue tasks that are incomplete
+query = """
+SELECT task_name, due_date, assigned_user 
+FROM tasks 
+WHERE due_date < CURDATE() AND status = 'Incomplete';
+"""
+
+cursor.execute(query)
+overdue_tasks = cursor.fetchall()
+
+# SMTP server setup (using Gmail for example)
+smtp_server = "smtp.gmail.com"
+port = 587
+sender_email = "your_email@gmail.com"
+password = "your_email_password"
+
+# Set up the server connection
+server = smtplib.SMTP(smtp_server, port)
+server.starttls()  # Start TLS encryption
+server.login(sender_email, password)
+
+# Function to send email
+def send_email(recipient, task_name, due_date):
+    message = MIMEMultipart("alternative")
+    message["Subject"] = f"Reminder: Your Task '{task_name}' is Overdue"
+    message["From"] = sender_email
+    message["To"] = recipient
+
+    # Email body
+    text = f"Hi,\n\nThe task '{task_name}' assigned to you was due on {due_date}. Please complete it ASAP.\n\nBest regards,\nTask Management System"
+    msg_body = MIMEText(text, "plain")
+
+    message.attach(msg_body)
+    server.sendmail(sender_email, recipient, message.as_string())
+    print(f"Email sent to {recipient} for task: {task_name}")
+
+# Iterate through overdue tasks and send reminders
+for task in overdue_tasks:
+    task_name, due_date, assigned_user = task
+    send_email(assigned_user, task_name, due_date)
+
+# Close the database and email server connection
+cursor.close()
+db.close()
+server.quit()
