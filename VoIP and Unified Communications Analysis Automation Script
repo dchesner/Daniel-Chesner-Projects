@@ -1,0 +1,279 @@
+# Load the JSON configuration
+$config = Get-Content -Path "C:\path\to\argv.json" | ConvertFrom-Json
+
+# Define Variables
+$callingNumber = "1234567890"  # Replace with the actual calling number
+$calledNumber = "0987654321"   # Replace with the actual called number
+$startDateTime = "2024-11-30T00:00:00Z"  # Replace with the start datetime in UTC format
+$endDateTime = "2024-12-01T00:00:00Z"    # Replace with the end datetime in UTC format
+$timeZone = "UTC"  # Replace with the applicable timezone
+
+# API Endpoints (Replace with actual Ribbon Analytics API URLs)
+$baseUrl = "https://api.ribbonanalytics.com"
+$callSearchEndpoint = "$baseUrl/calls/search"
+$callDetailsEndpoint = "$baseUrl/calls/details"
+$pcapEndpoint = "$baseUrl/calls/pcap"
+
+# Jira API Information
+$jiraBaseUrl = "https://yourcompany.atlassian.net"
+$jiraCreateTicketEndpoint = "$jiraBaseUrl/rest/api/3/issue"
+$jiraAuthToken = "your_jira_api_token_here"  # Replace with your Jira API token
+$jiraHeaders = @{
+    "Authorization" = "Basic $([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('your_email_address:your_jira_api_token')))"
+    "Content-Type" = "application/json"
+}
+
+# Authentication (Replace with your credentials or token)
+$apiKey = "your_api_key_here"
+$headers = @{
+    "Authorization" = "Bearer $apiKey"
+    "Content-Type" = "application/json"
+}
+
+# Define SIP Responses Classification
+$successfullSipResponses = @{
+    "100" = "Trying: The call is being attempted, no action needed."
+    "180" = "Ringing: The call is being routed, no action needed."
+    "181" = "Call is being forwarded: Normal operation."
+    "182" = "Queued: Normal operation, but monitor for delays."
+    "183" = "Session Progress: Call is in progress, no action needed."
+    "200" = "OK: Call connected successfully."
+    "BYE" = "BYE: The call has been properly terminated."
+    "ACK" = "ACK: Acknowledgment of a successful response (typically 200 OK)."
+}
+
+$failureSipResponses = @{
+    "400" = "Bad Request: Check SIP syntax or configurations."
+    "401" = "Unauthorized: Verify authentication credentials."
+    "403" = "Forbidden: Check permissions or call restrictions."
+    "404" = "Not Found: Verify the dialed number."
+    "408" = "Request Timeout: Check network connectivity or destination availability."
+    "480" = "Temporarily Unavailable: The callee is unavailable, retry later."
+    "486" = "Busy Here: The callee is busy, consider retrying later."
+    "500" = "Server Internal Error: Check the destination server's health."
+    "503" = "Service Unavailable: Check system load, restart services if necessary."
+    "504" = "Gateway Timeout: Check gateway availability and connectivity."
+    "600" = "Busy Everywhere: All lines are busy, retry later."
+    "603" = "Decline: The call was declined by the callee."
+    "604" = "Does Not Exist Anywhere: Invalid number, check the input."
+    "606" = "Not Acceptable: Call parameters unsupported, review configuration."
+}
+
+# Logging Function
+function Log-Message {
+    param (
+        [string]$Message,
+        [string]$Type = "INFO"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Output "[$timestamp] [$Type] $Message"
+}
+
+# Search for Calls in the Analytics System
+function SearchCalls {
+    Log-Message "Searching for calls based on the provided criteria..."
+    $searchPayload = @{
+        callingNumber = $callingNumber
+        calledNumber = $calledNumber
+        startDateTime = $startDateTime
+        endDateTime = $endDateTime
+        timeZone = $timeZone
+    } | ConvertTo-Json -Depth 10
+
+    try {
+        $response = Invoke-RestMethod -Uri $callSearchEndpoint -Method Post -Headers $headers -Body $searchPayload
+        if ($response -eq $null -or $response.calls.Count -eq 0) {
+            Log-Message "No calls found for the specified criteria." "ERROR"
+            return $null
+        }
+        Log-Message "Found $($response.calls.Count) calls matching the criteria."
+        return $response.calls
+    } catch {
+        Log-Message "Error while searching for calls: $_" "ERROR"
+        return $null
+    }
+}
+
+# Analyze Call Details and Generate Call Flow Summary
+function Analyze-CallDetails {
+    param (
+        [array]$Calls
+    )
+    $callSummaries = @()
+
+    foreach ($call in $Calls) {
+        $callId = $call.id
+        Log-Message "Fetching details for Call ID: $callId..."
+
+        try {
+            # Fetching call details (this is a mock call to your actual API endpoint)
+            $callDetailsResponse = Invoke-RestMethod -Uri "$callDetailsEndpoint/$callId" -Method Get -Headers $headers
+            $sipResponses = $callDetailsResponse.sipResponses
+            $packetLoss = $callDetailsResponse.packetLoss
+            $mosScore = $callDetailsResponse.mosScore
+            $responseDetails = $callDetailsResponse.responseDetails
+            $ucIssues = $callDetailsResponse.ucIssues  # UC-specific issues (user presence, routing, etc.)
+
+            # Start creating the call flow summary
+            $summary = "Call ID: $callId`nSIP Responses:`n"
+            
+            # Analyzing SIP responses (VoIP)
+            foreach ($responseDetail in $responseDetails) {
+                $sipResponse = $responseDetail.responseCode
+                $sourceIP = $responseDetail.sourceIP
+                $sourceType = $responseDetail.sourceType
+
+                if ($successfullSipResponses[$sipResponse]) {
+                    $summary += "`tResponse Code: $sipResponse - $($successfullSipResponses[$sipResponse]) - Source: $sourceType ($sourceIP)`n"
+                } elseif ($failureSipResponses[$sipResponse]) {
+                    $summary += "`tResponse Code: $sipResponse - $($failureSipResponses[$sipResponse]) - Source: $sourceType ($sourceIP)`n"
+                } else {
+                    $summary += "`tResponse Code: $sipResponse - Unknown Response - Source: $sourceType ($sourceIP)`n"
+                }
+            }
+
+            # Add packet loss and MOS score details (VoIP)
+            $summary += "`nPacket Loss: $packetLoss%`nMOS Score: $mosScore`n"
+
+            # UC Troubleshooting Insights (UC-specific issues)
+            $ucResponse = ""
+            if ($ucIssues.userPresence) {
+                $ucResponse += "UC Issue: User presence status could be incorrect. Check the user's status or availability.`n"
+            }
+            if ($ucIssues.callRouting) {
+                $ucResponse += "UC Issue: Call routing failure detected. Investigate call forwarding or routing rules.`n"
+            }
+            if ($ucIssues.deviceCompatibility) {
+                $ucResponse += "UC Issue: Device registration or configuration issues. Verify device settings or registration status.`n"
+            }
+            if ($ucIssues.conferenceCall) {
+                $ucResponse += "UC Issue: Conference call setup or participant connectivity problems. Review the conference configuration.`n"
+            }
+            if ($ucIssues.collaborationFeatures) {
+                $ucResponse += "UC Issue: Video, screen share, or chat failures. Verify service status and configurations.`n"
+            }
+
+            # Add UC troubleshooting information
+            if ($ucResponse) {
+                $summary += "`nUC Troubleshooting Insights:`n$ucResponse"
+            }
+
+            $callSummaries += $summary
+        } catch {
+            Log-Message "Error while fetching or processing call details for Call ID: $callId - $_" "ERROR"
+        }
+    }
+
+    return $callSummaries
+}
+
+
+# Fetch PCAP File for the Call
+function FetchPCAP {
+    param (
+        [string]$CallingNumber,
+        [string]$CalledNumber,
+        [string]$StartDateTime,
+        [string]$EndDateTime,
+        [string]$TimeZone
+    )
+    Log-Message "Fetching PCAP for the call..."
+    $pcapPayload = @{
+        callingNumber = $CallingNumber
+        calledNumber = $CalledNumber
+        startDateTime = $StartDateTime
+        endDateTime = $EndDateTime
+        timeZone = $TimeZone
+    } | ConvertTo-Json -Depth 10
+
+    try {
+        $response = Invoke-RestMethod -Uri $pcapEndpoint -Method Post -Headers $headers -Body $pcapPayload
+        $pcapFilePath = "C:\path\to\output\pcap_$CallingNumber" + "_" + (Get-Date -Format "yyyyMMdd_HHmmss") + ".html"
+        $response | Out-File -FilePath $pcapFilePath
+        Log-Message "PCAP saved to $pcapFilePath"
+        return $pcapFilePath
+    } catch {
+        Log-Message "Error fetching PCAP: $_" "ERROR"
+        return $null
+    }
+}
+
+# Submit Results to Jira
+function SubmitToJira {
+    param (
+        [string]$Summary,
+        [string]$Description
+    )
+    $jiraPayload = @{
+        fields = @{
+            project = @{
+                key = "YourProjectKey"  # Replace with your Jira project key
+            }
+            summary = $Summary
+            description = $Description
+            issuetype = @{
+                name = "Task"  # Replace with your Jira issue type
+            }
+        }
+    } | ConvertTo-Json -Depth 10
+
+    try {
+        $response = Invoke-RestMethod -Uri $jiraCreateTicketEndpoint -Method Post -Headers $jiraHeaders -Body $jiraPayload
+        Log-Message "Jira ticket created successfully: $($response.key)"
+    } catch {
+        Log-Message "Error creating Jira ticket: $_" "ERROR"
+    }
+}
+
+# Main Script Logic
+$calls = SearchCalls
+if ($calls -ne $null) {
+    $callSummaries = AnalyzeCallDetails -Calls $calls
+    $pcapPath = FetchPCAP -CallingNumber $callingNumber -CalledNumber $calledNumber -StartDateTime $startDateTime -EndDateTime $endDateTime -TimeZone $timeZone
+
+    $description = ($callSummaries -join "`n") + "`n`nPCAP File: $pcapPath"
+    SubmitToJira -Summary "Call Issue Analysis" -Description $description
+}
+
+# Step 3: Create Jira Ticket with Call Flow, Troubleshooting, and UC Insights
+function Create-JiraTicket {
+    param (
+        [array]$CallSummaries
+    )
+
+    $ticketSummary = "VoIP & UC Call Flow Analysis and Troubleshooting Report"
+    $ticketDescription = "The following call flows have been analyzed, with VoIP and UC troubleshooting insights:`n`n" + ($CallSummaries -join "`n`n")
+
+    # Prepare the troubleshooting insights to be added as an internal comment in Jira
+    $troubleshootingComment = "Full Call Flow and Troubleshooting Insights:`n" + ($CallSummaries -join "`n`n")
+
+    $jiraPayload = @{
+        fields = @{
+            project = @{
+                key = "SUPPORT"  # Replace with your Jira project key
+            }
+            summary = $ticketSummary
+            description = $ticketDescription
+            issuetype = @{
+                name = "Task"  # Replace with your desired issue type
+            }
+        }
+        update = @{
+            comment = @(
+                @{
+                    add = @{
+                        body = "$troubleshootingComment"
+                    }
+                }
+            )
+        }
+    } | ConvertTo-Json -Depth 10 -Compress
+
+    try {
+        Log-Message "Creating Jira Ticket..."
+        $jiraResponse = Invoke-RestMethod -Uri $jiraCreateTicketEndpoint -Method Post -Headers $jiraHeaders -Body $jiraPayload
+        Log-Message "Jira Ticket Created: $($jiraResponse.key)"
+    } catch {
+        Log-Message "Error while creating Jira Ticket: $_" "ERROR"
+    }
+}
