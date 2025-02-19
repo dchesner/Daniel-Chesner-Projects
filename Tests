@@ -1,1 +1,67 @@
+# Testing Database management system
 
+import unittest
+from flask import Flask
+from flask_testing import TestCase
+from your_flask_app import app, db, User, Task, Project, Comment
+
+class MyTest(TestCase):
+
+    def create_app(self):
+        app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        return app
+
+    def setUp(self):
+        db.create_all()
+        self.client = app.test_client()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def test_add_task(self):
+        response = self.client.post('/tasks', json={
+            'user_id': 1,
+            'title': 'Test Task',
+            'description': 'This is a test task',
+            'priority': 1,
+            'deadline': '2025-12-31'
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('Task created successfully', response.json['message'])
+
+    def test_get_tasks(self):
+        response = self.client.get('/tasks')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.json, list)
+
+    def test_update_task(self):
+        self.client.post('/tasks', json={
+            'user_id': 1,
+            'title': 'Test Task',
+            'description': 'This is a test task',
+            'priority': 1,
+            'deadline': '2025-12-31'
+        })
+        response = self.client.put('/tasks/1', json={
+            'title': 'Updated Task',
+            'description': 'This is an updated test task'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Task updated successfully', response.json['message'])
+
+    def test_delete_task(self):
+        self.client.post('/tasks', json={
+            'user_id': 1,
+            'title': 'Test Task',
+            'description': 'This is a test task',
+            'priority': 1,
+            'deadline': '2025-12-31'
+        })
+        response = self.client.delete('/tasks/1')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Task deleted successfully', response.json['message'])
+
+if __name__ == '__main__':
+    unittest.main()
