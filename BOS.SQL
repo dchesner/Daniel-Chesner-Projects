@@ -1,0 +1,8 @@
+CREATE DATABASE BankDB;
+USE BankDB;
+
+CREATE TABLE accounts (
+    account_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_holder VARCHAR(100),
+    balance DECIMAL(10,2) NOT NULL DEFAULT 0.00
+);
